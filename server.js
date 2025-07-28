@@ -34,13 +34,16 @@ app.post('/api/bin', validateData, async (req, res) => {
     console.log(req.body)
 
     try {
-        const binDoc = await db.collection('bins').doc(BinId).get()
+        // Query to find the bin document by BinId field (not document ID)
+        const binQuery = db.collection('bins').where('BinId', '==', BinId)
+        const binSnapshot = await binQuery.get()
 
-        if (!binDoc.exists) {
+        if (binSnapshot.empty) {
             return res.status(404).json({ message: 'Bin not registered.' })
         }
 
-        const binData = binDoc.data()
+        // Assuming there is only one matching bin
+        const binData = binSnapshot.docs[0].data()
 
         // Validate token
         if (binData.Token !== Token) {
@@ -66,7 +69,7 @@ app.post('/api/bin', validateData, async (req, res) => {
         const fillLevelTimestamp = fillLevelDoc.data().Timestamp
 
         // Update the bin's fill level with the calculated percentage and set the lastUpdated timestamp to the fill_level timestamp
-        await db.collection('bins').doc(BinId).update({
+        await db.collection('bins').doc(binSnapshot.docs[0].id).update({
             FillLevelPercentage: fillLevelPercentage, // Update the Fill_Level field in the bins collection
             LastUpdated: fillLevelTimestamp, // Use the timestamp from the fill_level document to update lastUpdated
         })
