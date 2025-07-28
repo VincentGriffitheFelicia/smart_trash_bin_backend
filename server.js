@@ -18,7 +18,7 @@ app.use(express.json())
 
 // Validate incoming request data using express-validator
 const validateData = [
-    body('Bin_Id').isString().withMessage('Bin_Id should be a string'),
+    body('BinId').isString().withMessage('BinId should be a string'),
     body('Distance').isFloat().withMessage('Distance should be a valid float'),
     body('Token').isString().withMessage('Token should be a string'),
 ]
@@ -30,11 +30,11 @@ app.post('/api/bin', validateData, async (req, res) => {
         return res.status(400).json({ errors: errors.array() })
     }
 
-    const { Bin_Id, Distance, Token } = req.body
+    const { BinId, Distance, Token } = req.body
     console.log(req.body)
 
     try {
-        const binDoc = await db.collection('bins').doc(Bin_Id).get()
+        const binDoc = await db.collection('bins').doc(BinId).get()
 
         if (!binDoc.exists) {
             return res.status(404).json({ message: 'Bin not registered.' })
@@ -55,20 +55,25 @@ app.post('/api/bin', validateData, async (req, res) => {
         )
 
         // Save fill level to Firestore with additional information
-        await db.collection('fill_levels').add({
-            Bin_Id,
-            Fill_Level_Percentage: fillLevelPercentage,
+        const fillLevelRef = await db.collection('fill_levels').add({
+            BinId,
+            FillLevelPercentage: fillLevelPercentage,
             Timestamp: admin.firestore.FieldValue.serverTimestamp(), // Use Firestore's timestamp
         })
 
-        // Update the bin's fill level with the calculated percentage
-        await db.collection('bins').doc(Bin_Id).update({
-            Fill_Level_Percentage: fillLevelPercentage, // Update the Fill_Level field in the bins collection
+        // Get the Timestamp from the newly added document
+        const fillLevelDoc = await fillLevelRef.get()
+        const fillLevelTimestamp = fillLevelDoc.data().Timestamp
+
+        // Update the bin's fill level with the calculated percentage and set the lastUpdated timestamp to the fill_level timestamp
+        await db.collection('bins').doc(BinId).update({
+            FillLevelPercentage: fillLevelPercentage, // Update the Fill_Level field in the bins collection
+            LastUpdated: fillLevelTimestamp, // Use the timestamp from the fill_level document to update lastUpdated
         })
 
         res.status(200).json({
             message: 'Distance and fill level saved.',
-            binId: binData.Bin_Id,
+            binId: binData.BinId,
             fillLevelPercentage,
         })
     } catch (err) {
