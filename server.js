@@ -39,6 +39,7 @@ app.post('/api/bin', validateData, async (req, res) => {
         const binSnapshot = await binQuery.get()
 
         if (binSnapshot.empty) {
+            console.log({ message: 'Bin not registered.' })
             return res.status(404).json({ message: 'Bin not registered.' })
         }
 
@@ -47,6 +48,7 @@ app.post('/api/bin', validateData, async (req, res) => {
 
         // Validate token
         if (binData.Token !== Token) {
+            console.log({ message: 'Invalid token. Unauthorized.' })
             return res.status(403).json({ message: 'Invalid token. Unauthorized.' })
         }
 
@@ -72,6 +74,12 @@ app.post('/api/bin', validateData, async (req, res) => {
         await db.collection('bins').doc(binSnapshot.docs[0].id).update({
             FillLevelPercentage: fillLevelPercentage, // Update the Fill_Level field in the bins collection
             LastUpdated: fillLevelTimestamp, // Use the timestamp from the fill_level document to update lastUpdated
+        })
+
+        console.log({
+            message: 'Distance and fill level saved.',
+            BinId: binData.BinId,
+            FillLevelPercentage: fillLevelPercentage,
         })
 
         res.status(200).json({
