@@ -48,7 +48,11 @@ app.post('/api/bin', validateData, async (req, res) => {
         }
 
         // Calculate fill level percentage
-        const fillLevelPercentage = calculateFillLevel(binData.Height, Distance)
+        const fillLevelPercentage = calculateFillLevel(
+            binData.FillableHeight, // Actual fillable height of the bin
+            Distance, // Distance measured by the sensor
+            binData.BufferHeight // Buffer zone that should be ignored
+        )
 
         // Save fill level to Firestore with additional information
         await db.collection('fill_levels').add({
@@ -74,13 +78,16 @@ app.post('/api/bin', validateData, async (req, res) => {
 })
 
 // Function to calculate fill level as a percentage
-function calculateFillLevel(binHeight, distance) {
-    if (binHeight <= 0 || distance < 0) {
-        throw new Error('Invalid height or distance values')
+function calculateFillLevel(fillableHeight, sensorDistance, bufferHeight) {
+    if (fillableHeight <= 0 || sensorDistance < 0 || bufferHeight < 0) {
+        throw new Error('Invalid height, distance, or buffer values')
     }
 
+    // Calculate the actual fill height by subtracting the buffer height from the sensor distance
+    const actualFillHeight = sensorDistance - bufferHeight
+
     // Calculate the fill level percentage
-    const fillLevelPercentage = ((binHeight - distance) / binHeight) * 100
+    const fillLevelPercentage = ((fillableHeight - actualFillHeight) / fillableHeight) * 100
 
     // Ensure the value stays within 0 to 100 range
     return Math.max(0, Math.min(100, fillLevelPercentage))
