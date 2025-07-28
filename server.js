@@ -73,8 +73,8 @@ app.post('/api/bin', validateData, async (req, res) => {
 
         res.status(200).json({
             message: 'Distance and fill level saved.',
-            binId: binData.BinId,
-            fillLevelPercentage,
+            BinId: binData.BinId,
+            FillLevelPercentage: fillLevelPercentage,
         })
     } catch (err) {
         console.error('Error verifying token or saving data:', err)
